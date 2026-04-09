@@ -380,16 +380,79 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 let playerName = '';
 const MAX_SCORES = 10;
 
-function getHighScores(){
-  try{ return JSON.parse(localStorage.getItem('solarSweepScores')||'[]'); }
-  catch(e){ return []; }
+
+// ── Global Leaderboard (Supabase) ─────────────────────────────
+const SUPABASE_URL = 'https://ytoqsjcjcjrtmshmunjh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0b3FzamNqY2pydG1zaG11bmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MzY3MTIsImV4cCI6MjA5MTMxMjcxMn0.e86vP1hoxHAzOIjTojvtclE9vcDQhdjxTDBk_PXXjI0';
+
+async function saveHighScore(name, totalScore, level) {
+  try {
+    const local = JSON.parse(localStorage.getItem('solarSweepScores') || '[]');
+    local.push({name: name.trim() || 'Anonymous', score: totalScore, level, date: new Date().toLocaleDateString()});
+    local.sort((a,b) => b.score - a.score);
+    localStorage.setItem('solarSweepScores', JSON.stringify(local.slice(0, 10)));
+  } catch(e) {}
+  try {
+    await fetch(SUPABASE_URL + '/rest/v1/high_scores', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ player_name: name.trim() || 'Anonymous', score: totalScore, level })
+    });
+  } catch(e) {}
 }
-function saveHighScore(name, totalScore, level){
-  const scores = getHighScores();
-  scores.push({name:name.trim()||'Anonymous', score:totalScore, level, date:new Date().toLocaleDateString()});
-  scores.sort((a,b)=>b.score-a.score);
-  localStorage.setItem('solarSweepScores', JSON.stringify(scores.slice(0,MAX_SCORES)));
+
+async function getGlobalHighScores() {
+  try {
+    const res = await fetch(
+      SUPABASE_URL + '/rest/v1/high_scores?select=player_name,score,level,created_at&order=score.desc&limit=10',
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) { return null; }
 }
+
+function getHighScores() {
+  try { return JSON.parse(localStorage.getItem('solarSweepScores') || '[]'); }
+  catch(e) { return []; }
+}
+
+function buildBoardHTML(scores, myScore, isGlobal) {
+  const title = isGlobal ? '🌍 Global Top 10' : '🏆 High Scores';
+  let html = `<div style="background:rgba(6,14,32,0.97);border:1px solid rgba(255,215,0,0.35);border-radius:12px;padding:16px 20px;width:100%;max-width:420px;margin:8px 0">
+    <div style="font-size:11px;letter-spacing:3px;color:#ffd700;text-transform:uppercase;margin-bottom:12px;text-align:center">${title}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr style="color:#5ab4ff;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border-bottom:1px solid rgba(70,170,255,0.2)">
+        <td style="padding:4px 6px">#</td><td style="padding:4px 6px">Name</td>
+        <td style="padding:4px 6px;text-align:right">Score</td>
+        <td style="padding:4px 6px;text-align:center">Lvl</td>
+        <td style="padding:4px 6px;text-align:right">Date</td>
+      </tr>`;
+  scores.forEach((s, i) => {
+    const sname = isGlobal ? s.player_name : s.name;
+    const sdate = isGlobal ? new Date(s.created_at).toLocaleDateString() : s.date;
+    const isMe  = s.score === myScore;
+    const rowStyle = isMe
+      ? 'background:rgba(255,215,0,0.12);border-left:3px solid #ffd700;font-weight:bold;color:#ffe066'
+      : 'border-left:3px solid transparent;color:' + (i===0?'#ffdd44':i===1?'#aaaaaa':i===2?'#cd7f32':'#88aacc');
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+    html += `<tr style="${rowStyle}">
+      <td style="padding:5px 6px">${medal}</td>
+      <td style="padding:5px 6px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sname}</td>
+      <td style="padding:5px 6px;text-align:right">${s.score.toLocaleString()}</td>
+      <td style="padding:5px 6px;text-align:center">${s.level}</td>
+      <td style="padding:5px 6px;text-align:right;font-size:10px;color:#556677">${sdate}</td>
+    </tr>`;
+  });
+  html += '</table></div>';
+  return html;
+}
+
 function startGame(){
   const input = document.getElementById('playerName');
   playerName = (input && input.value.trim()) ? input.value.trim() : 'Anonymous';
@@ -1785,67 +1848,55 @@ function gameOver(reason){
   showMobileControls(false);
   const cn=panels.filter(p=>p.dirtLevel===0&&!p.poop&&!p.leaf).length;
   const totalScore=score+bankTotal;
-
-  // Save score to leaderboard
   saveHighScore(playerName, totalScore, currentLevel);
 
-  // Build leaderboard HTML
-  const scores=getHighScores();
-  const myRank=scores.findIndex(s=>s.name===(playerName.trim()||'Anonymous')&&s.score===totalScore&&s.level===currentLevel)+1;
-  let boardHTML=`<div style="background:rgba(6,14,32,0.97);border:1px solid rgba(255,215,0,0.35);border-radius:12px;
-    padding:16px 20px;width:100%;max-width:420px;margin:8px 0">
-    <div style="font-size:11px;letter-spacing:3px;color:#ffd700;text-transform:uppercase;margin-bottom:12px;text-align:center">
-      🏆 High Scores
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <tr style="color:#5ab4ff;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border-bottom:1px solid rgba(70,170,255,0.2)">
-        <td style="padding:4px 6px">#</td>
-        <td style="padding:4px 6px">Name</td>
-        <td style="padding:4px 6px;text-align:right">Score</td>
-        <td style="padding:4px 6px;text-align:center">Lvl</td>
-        <td style="padding:4px 6px;text-align:right">Date</td>
-      </tr>`;
-  scores.forEach((s,i)=>{
-    const isMe=(i+1)===myRank&&s.score===totalScore;
-    const rowStyle=isMe
-      ?'background:rgba(255,215,0,0.12);border-left:3px solid #ffd700;font-weight:bold;color:#ffe066'
-      :'border-left:3px solid transparent;color:'+(i===0?'#ffdd44':i===1?'#aaaaaa':i===2?'#cd7f32':'#88aacc');
-    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
-    boardHTML+=`<tr style="${rowStyle}">
-      <td style="padding:5px 6px">${medal}</td>
-      <td style="padding:5px 6px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</td>
-      <td style="padding:5px 6px;text-align:right">${s.score.toLocaleString()}</td>
-      <td style="padding:5px 6px;text-align:center">${s.level}</td>
-      <td style="padding:5px 6px;text-align:right;font-size:10px;color:#556677">${s.date}</td>
-    </tr>`;
-  });
-  boardHTML+=`</table></div>`;
+  const ov = document.getElementById('overlay');
+  // Show game over immediately with local scores, then update with global
+  const localScores = getHighScores();
+  const myLocalRank = localScores.findIndex(s => s.score === totalScore) + 1;
 
-  const ov=document.getElementById('overlay');
-  ov.innerHTML=`
-    <h1>⏱ Time's <span>Up!</span></h1>
-    <p style="margin-bottom:4px">
-    Level score: <b>${score.toLocaleString()}</b> + Bank: <b>${bankTotal.toLocaleString()}</b> = <b style="color:#ffee44;font-size:16px">${totalScore.toLocaleString()} pts</b><br>
-    Level reached: <b>${currentLevel}</b> &nbsp;|&nbsp; Clean panels: <b>${cn}/${panels.length}</b>
-    ${myRank?`&nbsp;|&nbsp; Your rank: <b style="color:#ffd700">#${myRank}</b>`:''}
-    </p>
-
-    ${boardHTML}
-
-    <div style="margin:6px 0;max-width:440px;width:90%;border-radius:12px;overflow:hidden;box-shadow:0 0 24px rgba(68,200,255,0.3);border:1px solid rgba(70,170,255,0.35)">
-      <div style="background:rgba(6,14,32,0.97);padding:12px 16px;text-align:center;direction:ltr">
-        <p style="color:#44ddff;font-size:15px;font-weight:bold;margin:0;line-height:1.6;font-family:Arial,sans-serif">
-          With the Ruth Agri washing system,<br>all the panels would be clean much faster
-        </p>
+  function renderGameOver(boardHTML, rankLabel) {
+    ov.innerHTML = `
+      <h1>⏱ Time's <span>Up!</span></h1>
+      <p style="margin-bottom:4px">
+      Level score: <b>${score.toLocaleString()}</b> + Bank: <b>${bankTotal.toLocaleString()}</b> = <b style="color:#ffee44;font-size:16px">${totalScore.toLocaleString()} pts</b><br>
+      Level reached: <b>${currentLevel}</b> &nbsp;|&nbsp; Clean panels: <b>${cn}/${panels.length}</b>
+      ${rankLabel}
+      </p>
+      ${boardHTML}
+      <div style="margin:6px 0;max-width:440px;width:90%;border-radius:12px;overflow:hidden;box-shadow:0 0 24px rgba(68,200,255,0.3);border:1px solid rgba(70,170,255,0.35)">
+        <div style="background:rgba(6,14,32,0.97);padding:12px 16px;text-align:center;direction:ltr">
+          <p style="color:#44ddff;font-size:15px;font-weight:bold;margin:0;line-height:1.6;font-family:Arial,sans-serif">
+            With the Ruth Agri washing system,<br>all the panels would be clean much faster
+          </p>
+        </div>
+        <img src="${ROOF_IMG}" alt="Solar panels - Ruth Agri" style="width:100%;display:block;max-height:200px;object-fit:cover;object-position:center 30%"/>
       </div>
-      <img src="${ROOF_IMG}" alt="Solar panels - Ruth Agri" style="width:100%;display:block;max-height:200px;object-fit:cover;object-position:center 30%"/>
-    </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+        <button class="btn" onclick="fullRestart()">▶ Play Again</button>
+      </div>`;
+    ov.style.display = 'flex';
+  }
 
-    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
-      <button class="btn" onclick="fullRestart()">▶ Play Again</button>
-    </div>`;
-  ov.style.display='flex';
+  // Show local scores immediately
+  renderGameOver(
+    buildBoardHTML(localScores, totalScore, false),
+    myLocalRank ? `&nbsp;|&nbsp; Your rank: <b style="color:#ffd700">#${myLocalRank}</b>` : ''
+  );
+
+  // Then fetch global and update
+  getGlobalHighScores().then(global => {
+    if (!global || !global.length) return;
+    const myGlobalRank = global.findIndex(s => s.score === totalScore) + 1;
+    renderGameOver(
+      buildBoardHTML(global, totalScore, true),
+      myGlobalRank ? `&nbsp;|&nbsp; 🌍 Global rank: <b style="color:#ffd700">#${myGlobalRank}</b>` : ''
+    );
+    const _s2 = ov.scrollTop;
+    requestAnimationFrame(() => { requestAnimationFrame(() => { ov.scrollTop = _s2; }); });
+  });
 }
+
 function fullRestart(){
   currentLevel=1;currentCols=3;score=0;bankTotal=0;poopTotal=0;leafTotal=0;
   autoSystemBought=false;sprinklers=[];bigMopBought=false;extraTankBought=false;
