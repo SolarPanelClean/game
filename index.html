@@ -1105,7 +1105,7 @@ function openBank(){
   const ownedSprinklers=sprinklers.length;
   const canBuySprinkler=hasAuto&&bankTotal>=SPRINKLER_COST&&ownedSprinklers<maxSprinklers;
 
-  let shopHTML=`<div style="background:rgba(10,20,40,0.95);border:1px solid rgba(255,215,0,0.4);
+  let shopHTML=`<div id="shopBox" style="background:rgba(10,20,40,0.95);border:1px solid rgba(255,215,0,0.4);
     border-radius:14px;padding:24px 32px;max-width:560px;width:90%;max-height:80vh;overflow-y:auto">
     <h2 style="color:#ffd700;font-size:26px;letter-spacing:3px;margin-bottom:6px">🏦 SOLAR BANK</h2>
     <p style="color:#aabbcc;font-size:12px;margin-bottom:18px">Balance: <b style="color:#ffd700;font-size:18px">${bankTotal.toLocaleString()}</b> pts</p>
@@ -1387,10 +1387,10 @@ function openBank(){
       <button class="btn" onclick="closeBank()">↩ Back to Game</button>
     </div></div>`;
 
-  const _savedScroll = ov.scrollTop;
+  const _savedScroll = (document.getElementById('shopBox')||{scrollTop:0}).scrollTop;
   ov.innerHTML=shopHTML;
   ov.style.display='flex';
-  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ov.scrollTop=_savedScroll; }); });
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ const sb=document.getElementById('shopBox'); if(sb) sb.scrollTop=_savedScroll; }); });
 }
 
 function buyAutoSystem(){
@@ -1842,13 +1842,13 @@ function cancelExit(){
   document.getElementById('exitConfirm').style.display='none';
   if(paused) togglePause(); // resume
 }
-function gameOver(reason){
+async function gameOver(reason){
   gameRunning=false;
   stopMusic();
   showMobileControls(false);
   const cn=panels.filter(p=>p.dirtLevel===0&&!p.poop&&!p.leaf).length;
   const totalScore=score+bankTotal;
-  saveHighScore(playerName, totalScore, currentLevel);
+  await saveHighScore(playerName, totalScore, currentLevel);
 
   const ov = document.getElementById('overlay');
   // Show game over immediately with local scores, then update with global
