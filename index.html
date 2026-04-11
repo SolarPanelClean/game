@@ -313,7 +313,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
       Lead Developer — Yaniv Waldman
     </div>
     <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.2</div>
+    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.3</div>
   </div>
 
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -358,6 +358,16 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
       </button>
     </div>
   </div>
+
+  
+  <!-- Daily goal question -->
+  <div style="font-size:13px;color:#44ddff;letter-spacing:0.5px;font-family:Arial,sans-serif;text-align:center;margin-bottom:4px;">
+    🌞 Can you clean 100 panels today?
+  </div>
+
+<!-- Daily Goal Widget -->
+<div id="dailyGoalWidget" style="margin:8px 0 4px;padding:8px 14px;background:rgba(6,14,32,0.7);border:1px solid rgba(68,200,255,0.25);border-radius:10px;text-align:center;">
+</div>
 
   <button class="btn" id="startBtn" type="button"
     onclick="startGame()"
@@ -422,6 +432,70 @@ function getHighScores() {
   try { return JSON.parse(localStorage.getItem('solarSweepScores') || '[]'); }
   catch(e) { return []; }
 }
+
+// ── Daily Goal System ─────────────────────────────────────────
+const DAILY_GOAL = 100;
+const STREAK_BONUS_POINTS = 1000000;
+const STREAK_BONUS_DAYS = 5; // bonus awarded on day 6
+
+function getDailyData() {
+  try {
+    const d = JSON.parse(localStorage.getItem('solarSweepDaily') || '{}');
+    const today = new Date().toLocaleDateString();
+    if (d.date !== today) {
+      // New day — carry streak forward if goal was met yesterday
+      const yesterday = new Date(Date.now() - 86400000).toLocaleDateString();
+      const streak = (d.goalMet && d.date === yesterday) ? (d.streak || 0) : 0;
+      return { date: today, panels: 0, goalMet: false, streak, bonusGiven: false, bonusAvailable: streak >= STREAK_BONUS_DAYS };
+    }
+    return d;
+  } catch(e) { return { date: new Date().toLocaleDateString(), panels: 0, goalMet: false, streak: 0, bonusGiven: false, bonusAvailable: false }; }
+}
+
+function saveDailyData(d) {
+  try { localStorage.setItem('solarSweepDaily', JSON.stringify(d)); } catch(e) {}
+}
+
+function addDailyPanels(count) {
+  const d = getDailyData();
+  d.panels += count;
+  if (d.panels >= DAILY_GOAL && !d.goalMet) {
+    d.goalMet = true;
+    d.streak = (d.streak || 0) + 1;
+    if (d.streak >= STREAK_BONUS_DAYS) d.bonusAvailable = true;
+  }
+  saveDailyData(d);
+  return d;
+}
+
+function checkStreakBonus() {
+  const d = getDailyData();
+  if (d.bonusAvailable && !d.bonusGiven) {
+    d.bonusGiven = true;
+    d.bonusAvailable = false;
+    d.streak = 0; // reset after claiming
+    saveDailyData(d);
+    return true;
+  }
+  return false;
+}
+
+function updateDailyGoalWidget() {
+  const d = getDailyData();
+  const el = document.getElementById('dailyGoalWidget');
+  if (!el) return;
+  const pct = Math.min(100, Math.round((d.panels / DAILY_GOAL) * 100));
+  const barColor = d.goalMet ? '#44ff88' : pct > 50 ? '#ffdd44' : '#44ddff';
+  const streakText = d.streak > 0 ? ` &nbsp;🔥 ${d.streak} day streak` : '';
+  el.innerHTML = `
+    <div style="font-size:11px;color:#88aacc;letter-spacing:1px;margin-bottom:4px;text-align:center">
+      🌞 Panels today: ${d.panels}/${DAILY_GOAL} &nbsp;<span style="color:${barColor}">${d.goalMet ? '✅ Goal met!' : pct+'%'}</span>${streakText}
+    </div>
+    <div style="width:180px;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;margin:0 auto">
+      <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width 0.4s"></div>
+    </div>`;
+}
+
 
 function buildBoardHTML(scores, myScore, isGlobal) {
   const title = isGlobal ? '🌍 Global Top 10' : '🏆 High Scores';
@@ -1030,6 +1104,7 @@ function doLevelUp(){
   bankTotal+=score;
   score=0;
   const prevLevel=currentLevel;
+  addDailyPanels(panels.length); // track for daily goal
   currentLevel++;
   currentCols+=3;  // Mobile: add 3 cols per level
   // Level 10 was the last — show master screen
@@ -1848,8 +1923,15 @@ async function gameOver(reason){
   stopMusic();
   showMobileControls(false);
   const cn=panels.filter(p=>p.dirtLevel===0&&!p.poop&&!p.leaf).length;
+  addDailyPanels(cn); // count cleaned panels toward daily goal
   const totalScore=score+bankTotal;
   await saveHighScore(playerName, totalScore, currentLevel);
+
+  // Daily goal result
+  const _daily = getDailyData();
+  const _dailyMsg = _daily.goalMet
+    ? (_daily.streak > 1 ? `✅ Daily goal achieved! 🔥 ${_daily.streak} day streak!` : '✅ Daily goal of 100 panels achieved!')
+    : `❌ You didn't clean 100 panels today (${_daily.panels}/100). Try again!`;
 
   const ov = document.getElementById('overlay');
   // Show game over immediately with local scores, then update with global
@@ -1859,6 +1941,7 @@ async function gameOver(reason){
   function renderGameOver(boardHTML, rankLabel) {
     ov.innerHTML = `
       <h1>⏱ Time's <span>Up!</span></h1>
+      <div style="margin:6px auto 2px;padding:8px 16px;background:rgba(6,14,32,0.8);border-radius:8px;font-size:12px;color:#fff;text-align:center;max-width:380px">${_dailyMsg}</div>
       <p style="margin-bottom:4px">
       Level score: <b>${score.toLocaleString()}</b> + Bank: <b>${bankTotal.toLocaleString()}</b> = <b style="color:#ffee44;font-size:16px">${totalScore.toLocaleString()} pts</b><br>
       Level reached: <b>${currentLevel}</b> &nbsp;|&nbsp; Clean panels: <b>${cn}/${panels.length}</b>
@@ -1914,7 +1997,7 @@ function fullRestart(){
         Lead Developer — Yaniv Waldman
       </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.2</div>
+      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.3</div>
     </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -1962,7 +2045,16 @@ function fullRestart(){
     </div>
     <button class="btn" type="button"
       onclick="startGame()"
-      style="-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-appearance:none;">▶ Start Cleaning</button>`;
+      style="-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-appearance:none;">▶ Start Cleaning</button>
+    
+      <!-- Daily goal question -->
+      <div style=\"font-size:13px;color:#44ddff;letter-spacing:0.5px;font-family:Arial,sans-serif;text-align:center;margin-bottom:4px;\">
+        🌞 Can you clean 100 panels today?
+      </div>
+    
+    <!-- Daily Goal Widget -->
+    <div id=\"dailyGoalWidget\" style=\"margin:8px 0 4px;padding:8px 14px;background:rgba(6,14,32,0.7);border:1px solid rgba(68,200,255,0.25);border-radius:10px;text-align:center;\">
+    </div>`;
   ov.style.display='flex';
   gameRunning=false;
 }
