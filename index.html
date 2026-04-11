@@ -5,18 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Solar Sweep">
+<meta name="apple-mobile-web-app-title" content="Solar Clean">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0a0e1a">
-<meta name="description" content="Solar Sweep — clean solar panels in this fun mobile game!">
-<title>Solar Sweep 🌞 Mobile</title>
+<meta name="description" content="Solar Clean — clean solar panels in this fun mobile game!">
+<title>Solar Clean 🌞 Mobile</title>
 
 <!-- PWA Manifest (inline via blob, works from any origin including file://) -->
 <script>
 (function(){
   const manifest = {
-    name: "Solar Sweep",
-    short_name: "Solar Sweep",
+    name: "Solar Clean",
+    short_name: "Solar Clean",
     description: "Clean solar panels — fun mobile game!",
     start_url: ".",
     display: "fullscreen",
@@ -307,13 +307,13 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 <div id="overlay">
   <div style="text-align:center;margin-bottom:10px;direction:rtl;">
     <div style="font-size:22px;font-weight:bold;color:#44ddff;letter-spacing:1px;text-shadow:0 0 18px rgba(68,220,255,0.6);font-family:Arial,sans-serif;line-height:1.5">
-      📱 Solar Sweep — Mobile Edition
+      📱 Solar Clean — Mobile Edition
     </div>
     <div style="font-size:13px;color:#aabbcc;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:0.5px">
       Lead Developer — Yaniv Waldman
     </div>
     <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.5</div>
+    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.6</div>
   </div>
 
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -1123,7 +1123,7 @@ function doLevelUp(){
       </h1>
       <p style="color:#aabbcc;font-size:14px;line-height:1.8;max-width:420px;margin:0 auto 16px">
         You have completed all 10 levels and mastered every panel.<br>
-        <b style="color:#44ddff">Solar Sweep Champion!</b>
+        <b style="color:#44ddff">Solar Clean Champion!</b>
       </p>
       <p style="color:#88aacc;font-size:12px;margin-bottom:20px">
         Final Score: <b style="color:#ffee44;font-size:16px">${(score+bankTotal).toLocaleString()} pts</b>
@@ -1991,13 +1991,13 @@ function fullRestart(){
   ov.innerHTML=`
     <div style="text-align:center;margin-bottom:10px;direction:rtl;">
       <div style="font-size:22px;font-weight:bold;color:#44ddff;font-family:Arial,sans-serif;line-height:1.5;text-shadow:0 0 14px rgba(68,220,255,0.5)">
-        📱 Solar Sweep — Mobile Edition
+        📱 Solar Clean — Mobile Edition
       </div>
       <div style="font-size:12px;color:#aabbcc;margin-top:5px;font-family:Arial,sans-serif">
         Lead Developer — Yaniv Waldman
       </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.5</div>
+      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.6</div>
     </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -3653,7 +3653,7 @@ self.addEventListener('fetch', e => {
       `;
       banner.innerHTML = `
         <span style="font-size:22px">📲</span>
-        <span style="color:#cce8ff;font-size:13px">Install Solar Sweep as an app</span>
+        <span style="color:#cce8ff;font-size:13px">Install Solar Clean as an app</span>
         <button onclick="window.__pwaInstall()" style="
           background:linear-gradient(135deg,#44ddff,#1188ee);border:none;
           border-radius:7px;padding:6px 14px;font-size:12px;font-weight:bold;
