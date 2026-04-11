@@ -300,7 +300,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 
 <div id="pauseScreen">
   <h2>⏸ Paused</h2>
-  <p>Press <b>P</b> to resume</p>
+  <p>Press the <b>Resume</b> button to continue</p>
   <button class="btn" onclick="togglePause()">▶ Resume</button>
 </div>
 
@@ -313,7 +313,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
       Lead Developer — Yaniv Waldman
     </div>
     <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.3</div>
+    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.5</div>
   </div>
 
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -786,7 +786,7 @@ const LEVEL_MESSAGES={
   2:'The panels are dirty and must be cleaned',
   3:'It is important to keep the panels clean',
   4:'Clean panels, output for years',
-  5:'Full output when panels are clean all year'
+  5:'Full produce when panels are clean'
 };
 let speechBubble={active:false, timer:0, text:''};
 const SPEECH_DURATION=3.0;
@@ -1412,7 +1412,7 @@ function openBank(){
   // ─ Shirts (unlocks after level 3 = level >= 4) ─
   if(currentLevel>=4){
     cosHTML+=`<div style="margin-bottom:14px">
-      <div style="color:#ffdd88;font-size:12px;font-weight:bold;margin-bottom:8px">👕 Shirt <span style="color:#aaa;font-size:10px;font-weight:normal">(unlocked after Level 3)</span></div>
+      <div style="color:#ffdd88;font-size:12px;font-weight:bold;margin-bottom:8px">👕 Shirt <span style="color:#aaa;font-size:10px;font-weight:normal">(unlocked after Level 4)</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">`;
     for(const key of colorKeys){
       const owned=boughtShirts.has(key);
@@ -1432,10 +1432,10 @@ function openBank(){
     cosHTML+=`<div style="padding:10px;background:rgba(80,80,80,0.15);border:1px solid rgba(80,80,80,0.3);border-radius:8px;margin-bottom:10px;color:#556677;font-size:12px">🔒 Shirt colours — unlocks after finishing Level 3</div>`;
   }
 
-  // ─ Pants (unlocks after level 3 = level >= 4) ─
-  if(currentLevel>=4){
+  // ─ Pants (unlocks after level 4 = level >= 5) ─
+  if(currentLevel>=5){
     cosHTML+=`<div style="margin-bottom:14px">
-      <div style="color:#ffdd88;font-size:12px;font-weight:bold;margin-bottom:8px">👖 Pants <span style="color:#aaa;font-size:10px;font-weight:normal">(unlocked after Level 3)</span></div>
+      <div style="color:#ffdd88;font-size:12px;font-weight:bold;margin-bottom:8px">👖 Pants <span style="color:#aaa;font-size:10px;font-weight:normal">(unlocked after Level 4)</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">`;
     for(const key of colorKeys){
       const owned=boughtPants.has(key);
@@ -1452,7 +1452,7 @@ function openBank(){
     }
     cosHTML+=`</div></div>`;
   } else {
-    cosHTML+=`<div style="padding:10px;background:rgba(80,80,80,0.15);border:1px solid rgba(80,80,80,0.3);border-radius:8px;margin-bottom:10px;color:#556677;font-size:12px">🔒 Pants colours — unlocks after finishing Level 3</div>`;
+    cosHTML+=`<div style="padding:10px;background:rgba(80,80,80,0.15);border:1px solid rgba(80,80,80,0.3);border-radius:8px;margin-bottom:10px;color:#556677;font-size:12px">🔒 Pants colours — unlocks after finishing Level 4</div>`;
   }
 
   cosHTML+=`</div>`;
@@ -1997,7 +1997,7 @@ function fullRestart(){
         Lead Developer — Yaniv Waldman
       </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.3</div>
+      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.5.5</div>
     </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
