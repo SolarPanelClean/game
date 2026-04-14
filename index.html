@@ -185,7 +185,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
   }
   s.addEventListener("click",go,false);
   s.addEventListener("touchend",function(e){e.preventDefault();go();},false);
-  setTimeout(go,3000);
+  setTimeout(go,7000);
 })();
 </script>
 
@@ -336,7 +336,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
       Lead Developer — Yaniv Waldman
     </div>
     <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.6.2</div>
+    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.6.3</div>
   </div>
 
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -396,6 +396,14 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
   <button class="btn" id="startBtn" type="button"
     onclick="startGame()"
     style="-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-appearance:none;">▶ Start Cleaning</button>
+  <button type="button" onclick="openTutorial()"
+    style="margin-top:6px;padding:10px 28px;font-size:13px;letter-spacing:2px;
+    text-transform:uppercase;background:rgba(20,20,60,0.85);
+    border:1px solid rgba(68,170,255,0.6);border-radius:8px;
+    color:#44ddff;cursor:pointer;font-family:inherit;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation;">
+    📖 Tutorial
+  </button>
 
 
 <script>
@@ -1121,6 +1129,7 @@ const EXTRA_TANK_COST=100000;
 const COSMETIC_COST=10000;
 const HAT_COLORS={
   default:{label:'Default Yellow', T:'#ddcc22',L:'#aa9910',R:'#c4b018'},
+  tiger:  {label:'Tiger',          T:'#ff8800',L:'#cc4400',R:'#e06000'},
   blue:   {label:'Blue',           T:'#1188cc',L:'#0a5588',R:'#0d77aa'},
   green:  {label:'Green',          T:'#22aa44',L:'#117722',R:'#1a8833'},
   purple: {label:'Purple',         T:'#882299',L:'#551166',R:'#771188'},
@@ -1128,6 +1137,7 @@ const HAT_COLORS={
 };
 const SHIRT_COLORS={
   default:{label:'Default Blue', T:'#2255aa',L:'#14397a',R:'#1c4490'},
+  tiger:  {label:'Tiger',         T:'#111111',L:'#000000',R:'#0a0a0a'},
   blue:   {label:'Light Blue',   T:'#1188cc',L:'#0a5588',R:'#0d77aa'},
   green:  {label:'Green',        T:'#228844',L:'#145522',R:'#1a6633'},
   purple: {label:'Purple',       T:'#773399',L:'#441166',R:'#662288'},
@@ -1135,6 +1145,7 @@ const SHIRT_COLORS={
 };
 const PANTS_COLORS={
   default:{label:'Default Blue', T:'#2255aa',L:'#14397a',R:'#1c4490'},
+  tiger:  {label:'Tiger',        T:'#111111',L:'#000000',R:'#0a0a0a'},
   blue:   {label:'Blue',         T:'#1188cc',L:'#0a5588',R:'#0d77aa'},
   green:  {label:'Green',        T:'#228844',L:'#145522',R:'#1a6633'},
   purple: {label:'Purple',       T:'#773399',L:'#441166',R:'#662288'},
@@ -1142,12 +1153,14 @@ const PANTS_COLORS={
 };
 const VEST_COLORS={
   default:{label:'Default Orange', T:'#ff8800',L:'#cc5500',R:'#e06600'},
+  tiger:  {label:'Tiger',           T:'#ff6600',L:'#cc3300',R:'#e05000'},
   blue:   {label:'Blue',           T:'#1188cc',L:'#0a5588',R:'#0d77aa'},
   green:  {label:'Green',          T:'#22aa44',L:'#117722',R:'#1a8833'},
   purple: {label:'Purple',         T:'#882299',L:'#551166',R:'#771188'},
   red:    {label:'Red',            T:'#cc2222',L:'#991111',R:'#bb1a1a'},
 };
 let equippedHat='default';
+let tigerUniformBought=false;
 let equippedShirt='default';
 let equippedPants='default';
 let boughtHats=new Set(['default']);
@@ -1776,7 +1789,7 @@ function openBank(){
   const colorKeys=['blue','green','purple','red'];
   const colorNames={blue:'Blue',green:'Green',purple:'Purple',red:'Red'};
   const colorSwatches={
-    hat:  {blue:'#1188cc',green:'#22aa44',purple:'#882299',red:'#cc2222'},
+    hat:  {blue:'#1188cc',green:'#22aa44',purple:'#882299',red:'#cc2222',tiger:'#ff8800'},
     shirt:{blue:'#1188cc',green:'#228844',purple:'#773399',red:'#cc3322'},
     pants:{blue:'#1188cc',green:'#228844',purple:'#773399',red:'#cc3322'},
     vest: {blue:'#1188cc',green:'#22aa44',purple:'#882299',red:'#cc2222'},
@@ -2464,10 +2477,45 @@ async function gameOver(reason){
   });
 }
 
+const TIGER_COST = 100000;
+function equipTigerUniform() {
+  if (!tigerUniformBought) return;
+  equippedHat='tiger'; equippedShirt='tiger';
+  equippedVest='tiger'; equippedPants='tiger';
+  updateHUD(); openBank();
+}
+
+function buyTigerUniform() {
+  if (bankTotal < TIGER_COST || tigerUniformBought) return;
+  // Check all 4 colors bought for all 4 items
+  const colors = ['blue','green','purple','red'];
+  const allBought = colors.every(k =>
+    boughtHats.has(k) && boughtShirts.has(k) && boughtVests.has(k) && boughtPants.has(k)
+  );
+  if (!allBought) { showAlert('Buy all colors of all clothing items first!'); return; }
+  bankTotal -= TIGER_COST;
+  tigerUniformBought = true;
+  equippedHat = 'tiger'; equippedShirt = 'tiger';
+  equippedVest = 'tiger'; equippedPants = 'tiger';
+  sfxBuy();
+  showAlert('🐯 Tiger Uniform unlocked and equipped!');
+  updateHUD(); openBank();
+}
+
+function openTutorial() {
+  var t = document.getElementById('tutorialOverlay');
+  if (t) { t.style.display = 'flex'; t.scrollTop = 0; }
+}
+function closeTutorial() {
+  var t = document.getElementById('tutorialOverlay');
+  if (t) t.style.display = 'none';
+}
+
 function fullRestart(){
   currentLevel=1;currentCols=3;score=0;bankTotal=0;poopTotal=0;leafTotal=0;
   autoSystemBought=false;sprinklers=[];bigMopBought=false;extraTankBought=false;
   equippedVest='default';boughtVests=new Set(['default']);
+  tigerUniformBought=false;
   extraTimeBought1=false;extraTimeBought2=false;extraTimeBought3=false;
   // Go back to splash/name screen
   const ov=document.getElementById('overlay');
@@ -2480,7 +2528,7 @@ function fullRestart(){
         Lead Developer — Yaniv Waldman
       </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.6.2</div>
+      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.6.3</div>
     </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -2528,7 +2576,7 @@ function fullRestart(){
     </div>
     <button class="btn" type="button"
       onclick="startGame()"
-      style="-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-appearance:none;">▶ Start Cleaning</button>
+      style="-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-appearance:none;">▶ Start Cleaning</button>\n      <button type=\"button\" onclick=\"openTutorial()\" style=\"margin-top:6px;padding:10px 28px;font-size:13px;letter-spacing:2px;text-transform:uppercase;background:rgba(20,20,60,0.85);border:1px solid rgba(68,170,255,0.6);border-radius:8px;color:#44ddff;cursor:pointer;font-family:inherit;\">📖 Tutorial</button/button>
     
       <!-- Daily goal question -->
       <div style=\"font-size:13px;color:#44ddff;letter-spacing:0.5px;font-family:Arial,sans-serif;text-align:center;margin-bottom:4px;\">
@@ -4037,6 +4085,7 @@ function initGame(){
   waterLevel=1;saltLevel=1;particles=[];popups=[];score=0;bankTotal=0;
   autoSystemBought=false;sprinklers=[];bigMopBought=false;extraTankBought=false;
   equippedVest='default';boughtVests=new Set(['default']);
+  tigerUniformBought=false;
   extraTimeBought1=false;extraTimeBought2=false;extraTimeBought3=false;
   stopMusic(); musicStarted=false;
   speechBubble={active:false,timer:0,text:''};
@@ -4196,5 +4245,64 @@ self.addEventListener('fetch', e => {
   }, 3000);
 })();
 </script>
+
+<!-- Tutorial Overlay -->
+<div id="tutorialOverlay" style="display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(3,7,20,0.97);overflow-y:auto;
+  flex-direction:column;align-items:center;padding:24px 20px 40px;">
+  <div style="max-width:480px;width:100%;font-family:Arial,sans-serif;color:#cce8ff;">
+    <h2 style="color:#ffd700;font-size:22px;letter-spacing:3px;text-align:center;margin-bottom:20px;">
+      📖 HOW TO PLAY
+    </h2>
+
+    <div style="background:rgba(6,14,32,0.8);border:1px solid rgba(68,200,255,0.3);border-radius:10px;padding:14px 18px;margin-bottom:12px;">
+      <div style="color:#44ddff;font-weight:bold;margin-bottom:6px;">🕹️ Controls</div>
+      <p style="font-size:13px;line-height:1.7;">Use the <b>joystick</b> (bottom-left) to walk your cleaner around the solar panels. Press the <b>Clean</b> button (bottom-right) when you are standing next to a dirty panel to clean it.</p>
+    </div>
+
+    <div style="background:rgba(6,14,32,0.8);border:1px solid rgba(68,200,255,0.3);border-radius:10px;padding:14px 18px;margin-bottom:12px;">
+      <div style="color:#44ddff;font-weight:bold;margin-bottom:6px;">🌞 Goal</div>
+      <p style="font-size:13px;line-height:1.7;">Clean as many solar panels as possible before the <b>2-minute timer</b> runs out. Each level adds more panels. Reach Level 10 to become the <b>Master of Cleaning</b>!</p>
+    </div>
+
+    <div style="background:rgba(6,14,32,0.8);border:1px solid rgba(68,200,255,0.3);border-radius:10px;padding:14px 18px;margin-bottom:12px;">
+      <div style="color:#44ddff;font-weight:bold;margin-bottom:6px;">⭐ Scoring</div>
+      <p style="font-size:13px;line-height:1.7;">
+        • Clean a dirty panel → <b style="color:#ffd700;">+500 pts</b><br>
+        • Remove bird poop → <b style="color:#ffd700;">+750 pts</b><br>
+        • Remove a leaf → <b style="color:#ffd700;">+750 pts</b><br>
+        • Your score is saved to the <b>global leaderboard</b>
+      </p>
+    </div>
+
+    <div style="background:rgba(6,14,32,0.8);border:1px solid rgba(68,200,255,0.3);border-radius:10px;padding:14px 18px;margin-bottom:12px;">
+      <div style="color:#44ddff;font-weight:bold;margin-bottom:6px;">💧 Water & 🧂 Salt</div>
+      <p style="font-size:13px;line-height:1.7;">Your water tank depletes as you clean. Walk to the <b>blue water tank</b> to refill. At higher levels a <b>salt tank</b> appears — salt removes stubborn stains faster.</p>
+    </div>
+
+    <div style="background:rgba(6,14,32,0.8);border:1px solid rgba(68,200,255,0.3);border-radius:10px;padding:14px 18px;margin-bottom:12px;">
+      <div style="color:#44ddff;font-weight:bold;margin-bottom:6px;">🐦 Watch Out for Birds!</div>
+      <p style="font-size:13px;line-height:1.7;">Sparrows, pigeons and crows fly in and dirty your panels. <b>Crows</b> make the biggest mess! Clean the poop quickly for bonus points.</p>
+    </div>
+
+    <div style="background:rgba(6,14,32,0.8);border:1px solid rgba(68,200,255,0.3);border-radius:10px;padding:14px 18px;margin-bottom:12px;">
+      <div style="color:#44ddff;font-weight:bold;margin-bottom:6px;">🏦 Bank & Shop</div>
+      <p style="font-size:13px;line-height:1.7;">Press <b>Bank</b> during the game to spend your points on upgrades: a bigger mop, extra water tank, auto-clean sprinklers, extra time, and cosmetic outfits for your cleaner.</p>
+    </div>
+
+    <div style="background:rgba(6,14,32,0.8);border:1px solid rgba(255,215,0,0.3);border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+      <div style="color:#ffd700;font-weight:bold;margin-bottom:6px;">🌞 Daily Goal</div>
+      <p style="font-size:13px;line-height:1.7;">Clean <b>100 panels every day</b> to build a streak. Achieve 5 days in a row and earn a <b style="color:#ffd700;">1,000,000 bonus points</b> on day 6!</p>
+    </div>
+
+    <button onclick="closeTutorial()"
+      style="display:block;margin:0 auto;padding:12px 40px;font-size:14px;
+      letter-spacing:2px;text-transform:uppercase;background:linear-gradient(135deg,#1a3a6a,#2255aa);
+      border:1px solid rgba(68,170,255,0.6);border-radius:8px;color:#fff;
+      cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;">
+      🏠 Home
+    </button>
+  </div>
+</div>
 </body>
 </html>
