@@ -336,7 +336,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
       Lead Developer — Yaniv Waldman
     </div>
     <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.6.3</div>
+    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.6.4</div>
   </div>
 
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -483,12 +483,29 @@ function getLastWeekWinner() {
   try { return JSON.parse(localStorage.getItem('solarLastWeekWinner') || 'null'); } catch(e) { return null; }
 }
 
+function getLastWeekKey() {
+  const now = new Date();
+  const day = now.getDay();
+  const startOfLastWeek = new Date(now);
+  startOfLastWeek.setDate(now.getDate() - day - 7);
+  startOfLastWeek.setHours(0,0,0,0);
+  return 'week_' + startOfLastWeek.getTime();
+}
+
 function checkWeeklyReset() {
   const currentWeek = getWeekKey();
   const storedWeek = localStorage.getItem('solarCurrentWeek');
   if (storedWeek && storedWeek !== currentWeek) {
-    // New week — store last week's winner (we'd need to have saved it)
-    // For now just update the week key
+    // New week started — promote this week's leader to last week winner
+    try {
+      const thisWeekLeader = JSON.parse(localStorage.getItem('solarThisWeekLeader') || 'null');
+      if (thisWeekLeader) {
+        localStorage.setItem('solarLastWeekWinner', JSON.stringify({
+          ...thisWeekLeader,
+          weekKey: storedWeek
+        }));
+      }
+    } catch(e) {}
     localStorage.setItem('solarCurrentWeek', currentWeek);
   } else if (!storedWeek) {
     localStorage.setItem('solarCurrentWeek', currentWeek);
@@ -496,25 +513,29 @@ function checkWeeklyReset() {
 }
 
 function isWeeklyWinner() {
-  const winner = getLastWeekWinner();
-  if (!winner) return false;
-  const name = (playerName || '').trim().toLowerCase();
-  return winner.name && winner.name.toLowerCase() === name;
+  try {
+    const winner = JSON.parse(localStorage.getItem('solarLastWeekWinner') || 'null');
+    if (!winner || !winner.name) return false;
+    const name = (playerName || '').trim().toLowerCase();
+    if (winner.name.toLowerCase() !== name) return false;
+    // Crown valid only for the week AFTER they won (winner.weekKey = last week)
+    const lastWk = getLastWeekKey();
+    if (winner.weekKey && winner.weekKey !== lastWk) return false;
+    return true;
+  } catch(e) { return false; }
 }
 
 // Gold hat override for weekly winner
 function getEffectiveHatColors() {
-  if (isWeeklyWinner()) {
-    return { T:'#ffd700', L:'#cc9900', R:'#e6b800' };
-  }
   return HAT_COLORS[equippedHat];
 }
 
 // Save weekly winner after fetching leaderboard
 function saveWeeklyWinnerFromScores(scores) {
   if (scores && scores.length > 0) {
-    const winner = { name: scores[0].player_name, score: scores[0].score };
-    localStorage.setItem('solarLastWeekWinner', JSON.stringify(winner));
+    // Save as this week's current leader (not last week winner yet)
+    const leader = { name: scores[0].player_name, score: scores[0].score };
+    localStorage.setItem('solarThisWeekLeader', JSON.stringify(leader));
   }
 }
 
@@ -2596,7 +2617,7 @@ function fullRestart(){
         Lead Developer — Yaniv Waldman
       </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.6.3</div>
+      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.6.4</div>
     </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -3468,6 +3489,35 @@ function drawPlayer(){
   // Logo
   ctx.save();ctx.font='bold 9px sans-serif';ctx.textAlign='center';
   ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillText('☀',-1,-119);ctx.restore();
+  // — Crown (weekly winner) —
+  if(isWeeklyWinner()){
+    ctx.save();
+    // Crown base band
+    ctx.fillStyle='#ffd700';
+    ctx.fillRect(-14,-146,28,8);
+    // Crown points (5 points: left, mid-left, center, mid-right, right)
+    const pts=[[-14,-146],[-10,-158],[-5,-150],[0,-162],[5,-150],[10,-158],[14,-146]];
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0],pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+    ctx.closePath();
+    ctx.fillStyle='#ffd700';
+    ctx.fill();
+    // Crown outline
+    ctx.strokeStyle='#cc9900';ctx.lineWidth=1.5;ctx.stroke();
+    // Gems on crown points
+    [[0,-163],[-10,-159],[10,-159]].forEach(([gx,gy])=>{
+      ctx.beginPath();ctx.arc(gx,gy,2.5,0,Math.PI*2);
+      ctx.fillStyle='#ff3333';ctx.fill();
+      ctx.strokeStyle='#cc0000';ctx.lineWidth=0.8;ctx.stroke();
+    });
+    // Crown base dots
+    [[-8,-142],[-3,-142],[3,-142],[8,-142]].forEach(([gx,gy])=>{
+      ctx.beginPath();ctx.arc(gx,gy,1.8,0,Math.PI*2);
+      ctx.fillStyle='#cc9900';ctx.fill();
+    });
+    ctx.restore();
+  }
   // Helmet shadow
   ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(0,-133,15,22);
 
