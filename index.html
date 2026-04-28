@@ -226,7 +226,7 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.open(CACHE).then(c=>c.mat
   }
   s.addEventListener("click",go,false);
   s.addEventListener("touchend",function(e){e.preventDefault();go();},false);
-  setTimeout(go,7000);
+  setTimeout(go,2500);
 })();
 </script>
 
@@ -369,7 +369,7 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.open(CACHE).then(c=>c.mat
 </div>
 
 <div id="overlay" class="splash-bg">
-  <div style="text-align:center;margin-bottom:10px;direction:rtl;">
+  <div style="text-align:center;margin-bottom:10px;">
     <div style="font-size:22px;font-weight:bold;color:#44ddff;letter-spacing:1px;text-shadow:0 0 18px rgba(68,220,255,0.6);font-family:Arial,sans-serif;line-height:1.5">
       📱 Solar Clean — Mobile Edition
     </div>
@@ -1832,6 +1832,389 @@ function buildBonusPanels(){
   }
 }
 
+function openBank(){
+  const ov=document.getElementById('overlay');
+  const canBuyAuto=currentLevel>=4&&!autoSystemBought&&bankTotal>=AUTO_SYSTEM_COST;
+  const hasAuto=autoSystemBought;
+  const maxSprinklers=panels.length;
+  const ownedSprinklers=sprinklers.length;
+  const canBuySprinkler=hasAuto&&bankTotal>=SPRINKLER_COST&&ownedSprinklers<maxSprinklers;
+
+  let shopHTML=`<div id="shopBox" style="background:rgba(10,20,40,0.95);border:1px solid rgba(255,215,0,0.4);
+    border-radius:14px;padding:24px 32px;max-width:560px;width:90%;max-height:80vh;overflow-y:auto">
+    <h2 style="color:#ffd700;font-size:26px;letter-spacing:3px;margin-bottom:6px">🏦 Solar Bank</h2>
+    <p style="color:#aabbcc;font-size:12px;margin-bottom:18px">Balance: <b style="color:#ffd700;font-size:18px">${bankTotal.toLocaleString()}</b> pts</p>
+
+    <div style="border-top:1px solid rgba(255,215,0,0.2);padding-top:16px;margin-bottom:16px">
+      <div style="color:#88ccff;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">🧹 Equipment</div>`;
+
+  // Big Mop upgrade — available from level 2
+  if(bigMopBought){
+    shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.25);border-radius:8px">
+      <div style="font-size:28px">🧹</div>
+      <div style="flex:1"><div style="color:#44ff88;font-weight:bold">Pro Big Mop</div><div style="color:#88aacc;font-size:11px">Installed ✓ — Cleans 2× faster · +5% score per clean</div></div>
+    </div>`;
+  } else if(currentLevel>=2){
+    const canBuy=bankTotal>=BIG_MOP_COST;
+    shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(255,140,0,0.06);border:1px solid rgba(255,140,0,0.35);border-radius:8px">
+      <div style="font-size:28px">🧹</div>
+      <div style="flex:1"><div style="color:#ffaa44;font-weight:bold">Pro Big Mop</div>
+        <div style="color:#88aacc;font-size:11px">Upgrades the mop. Removes dirt 2× faster with a wider head. + <b style="color:#ffcc44">+5% score bonus</b> per clean.</div>
+        <div style="color:#ffaa44;font-size:11px;margin-top:3px">Cost: ${BIG_MOP_COST.toLocaleString()} pts (one time)</div></div>
+      <button onclick="buyBigMop()" ${canBuy?'':'disabled'}
+        style="padding:8px 14px;border:none;border-radius:6px;cursor:${canBuy?'pointer':'not-allowed'};
+        background:${canBuy?'linear-gradient(135deg,#ffaa44,#cc6600)':'rgba(80,80,80,0.5)'};
+        color:${canBuy?'#000':'#666'};font-weight:bold;font-size:12px;font-family:inherit;white-space:nowrap">
+        ${bankTotal<BIG_MOP_COST?'Missing pts':'Buy for 25000 pts'}</button>
+    </div>`;
+  } else {
+    shopHTML+=`<div style="padding:12px;background:rgba(80,80,80,0.15);border:1px solid rgba(80,80,80,0.3);border-radius:8px;margin-bottom:12px;color:#556677;font-size:12px">
+      🔒 Pro Big Mop — unlocks at Level Level 2</div>`;
+  }
+
+  shopHTML+=`</div><div style="border-top:1px solid rgba(255,215,0,0.2);padding-top:16px;margin-bottom:16px">
+    <div style="color:#88ccff;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">🏭 Infrastructure</div>`;
+
+  // Extra water tank — available from level 3
+  if(extraTankBought){
+    shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.25);border-radius:8px">
+      <div style="font-size:28px">🪣</div>
+      <div style="flex:1"><div style="color:#44ff88;font-weight:bold">Extra Water Tank</div><div style="color:#88aacc;font-size:11px">Installed ✓ — Shown top-right, doubles your water supply</div></div>
+    </div>`;
+  } else if(currentLevel>=3){
+    const canBuyTank=bankTotal>=EXTRA_TANK_COST;
+    shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(70,170,255,0.06);border:1px solid rgba(70,170,255,0.35);border-radius:8px">
+      <div style="font-size:28px">🪣</div>
+      <div style="flex:1"><div style="color:#44aaff;font-weight:bold">Extra Water Tank</div>
+        <div style="color:#88aacc;font-size:11px">An additional water reservoir. Doubles cleaning capacity — shown top-right.</div>
+        <div style="color:#44aaff;font-size:11px;margin-top:3px">Cost: ${EXTRA_TANK_COST.toLocaleString()} pts (one time)</div></div>
+      <button onclick="buyExtraTank()" ${canBuyTank?'':'disabled'}
+        style="padding:8px 14px;border:none;border-radius:6px;cursor:${canBuyTank?'pointer':'not-allowed'};
+        background:${canBuyTank?'linear-gradient(135deg,#44aaff,#1166cc)':'rgba(80,80,80,0.5)'};
+        color:${canBuyTank?'#000':'#666'};font-weight:bold;font-size:12px;font-family:inherit;white-space:nowrap">
+        ${bankTotal<EXTRA_TANK_COST?'Missing pts':'Buy 100k pts'}</button>
+    </div>`;
+  } else {
+    shopHTML+=`<div style="padding:12px;background:rgba(80,80,80,0.15);border:1px solid rgba(80,80,80,0.3);border-radius:8px;margin-bottom:12px;color:#556677;font-size:12px">
+      🔒 Extra Water Tank — unlocks at Level Level 3</div>`;
+  }
+
+  // Auto system
+  if(hasAuto){
+    shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.25);border-radius:8px">
+      <div style="font-size:28px">🤖</div>
+      <div style="flex:1"><div style="color:#44ff88;font-weight:bold">Auto-Clean System</div><div style="color:#88aacc;font-size:11px">Installed ✓ — Sprinklers active every ${SPRINKLER_INTERVAL}ss</div></div>
+    </div>`;
+  } else if(currentLevel>=4){
+    shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.3);border-radius:8px">
+      <div style="font-size:28px">🤖</div>
+      <div style="flex:1"><div style="color:#ffd700;font-weight:bold">Auto-Clean System</div>
+        <div style="color:#88aacc;font-size:11px">Purchase one time. Enables installation of Sprinklers. Panels auto-cleaned every ${SPRINKLER_INTERVAL}ss.</div>
+        <div style="color:#ffaa44;font-size:11px;margin-top:3px">Cost: ${AUTO_SYSTEM_COST.toLocaleString()} pts (one time)</div></div>
+      <button onclick="buyAutoSystem()" ${canBuyAuto?'':'disabled'}
+        style="padding:8px 14px;border:none;border-radius:6px;cursor:${canBuyAuto?'pointer':'not-allowed'};
+        background:${canBuyAuto?'linear-gradient(135deg,#ffd700,#cc8800)':'rgba(80,80,80,0.5)'};
+        color:${canBuyAuto?'#000':'#666'};font-weight:bold;font-size:12px;font-family:inherit;white-space:nowrap">
+        ${bankTotal<AUTO_SYSTEM_COST?'Not enough pts':'Buy 100k pts'}</button>
+    </div>`;
+  } else {
+    shopHTML+=`<div style="padding:12px;background:rgba(80,80,80,0.15);border:1px solid rgba(80,80,80,0.3);border-radius:8px;margin-bottom:12px;color:#556677;font-size:12px">
+      🔒 Auto-Clean System — unlocks at Level Level 4</div>`;
+  }
+
+  // Sprinklers
+  shopHTML+=`</div><div style="border-top:1px solid rgba(255,215,0,0.2);padding-top:16px;margin-bottom:16px">
+    <div style="color:#88ccff;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">💧 Sprinklers (${ownedSprinklers}/${maxSprinklers} installed)</div>`;
+
+  if(hasAuto){
+    shopHTML+=`<div style="display:flex;align-items:center;gap:12px;padding:12px;
+      background:rgba(70,170,255,0.06);border:1px solid rgba(70,170,255,0.3);border-radius:8px;margin-bottom:10px">
+      <div style="font-size:28px">💧</div>
+      <div style="flex:1"><div style="color:#44ddff;font-weight:bold">Solar Panel Sprinkler</div>
+        <div style="color:#88aacc;font-size:11px">Assigned to a random unprotected panel. Auto-cleans dirt, poop & leaves.</div>
+        <div style="color:#ffaa44;font-size:11px;margin-top:3px">Cost: ${SPRINKLER_COST.toLocaleString()} pts each</div></div>
+      <button onclick="buySprinkler()" ${canBuySprinkler?'':'disabled'}
+        style="padding:8px 14px;border:none;border-radius:6px;cursor:${canBuySprinkler?'pointer':'not-allowed'};
+        background:${canBuySprinkler?'linear-gradient(135deg,#44ddff,#1188ee)':'rgba(80,80,80,0.5)'};
+        color:${canBuySprinkler?'#000':'#666'};font-weight:bold;font-size:12px;font-family:inherit;white-space:nowrap">
+        ${bankTotal<SPRINKLER_COST?'Missing pts':'Buy 10k pts'}</button>
+    </div>`;
+
+    // Show installed sprinklers
+    if(ownedSprinklers>0){
+      shopHTML+=`<div style="color:#668899;font-size:11px;padding:4px 8px">
+        installed on panels: ${sprinklers.map((s,i)=>`#${s.panelIdx+1}`).join(', ')}</div>`;
+    }
+  } else {
+    shopHTML+=`<div style="color:#556677;font-size:12px;padding:8px">🔒 Requires Auto-Clean System</div>`;
+  }
+
+
+  shopHTML+=`</div>`; // close sprinklers wrapper
+
+  // ─ Extra Time (unlocks after level 6, requires all main purchases) ─
+  const allMainBought = bigMopBought && autoSystemBought && sprinklers.length>=10
+    && boughtHats.size>1 && boughtVests.size>1 && boughtShirts.size>1 && boughtPants.size>1;
+  const EXTRA_TIME_COST = 20000;
+  const canBuyET1 = currentLevel>=7 && allMainBought && bankTotal>=EXTRA_TIME_COST && !extraTimeBought1;
+  const canBuyET2 = currentLevel>=8 && allMainBought && bankTotal>=EXTRA_TIME_COST && extraTimeBought1 && !extraTimeBought2;
+  const canBuyET3 = currentLevel>=9 && allMainBought && bankTotal>=EXTRA_TIME_COST && extraTimeBought2 && !extraTimeBought3;
+  const canBuyET4 = currentLevel>=10 && allMainBought && bankTotal>=EXTRA_TIME_COST && extraTimeBought3 && !extraTimeBought4;
+
+  if(allMainBought && currentLevel>=7){
+    shopHTML+=`<div style="border-top:1px solid rgba(255,215,0,0.2);padding-top:16px;margin-bottom:16px">
+      <div style="color:#ffcc44;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">⏱ Extra Time</div>`;
+
+    if(!extraTimeBought1){
+      shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(255,200,0,0.06);border:1px solid rgba(255,200,0,0.35);border-radius:8px">
+        <div style="font-size:28px">⏱</div>
+        <div style="flex:1"><div style="color:#ffdd44;font-weight:bold">Extra Time +20s (1st)</div>
+          <div style="color:#88aacc;font-size:11px">Add 20 seconds. Clock will show 2:20.</div>
+          <div style="color:#ffaa44;font-size:11px;margin-top:3px">Cost: ${EXTRA_TIME_COST.toLocaleString()} pts (one time)</div></div>
+        <button onclick="buyExtraTime1()" ${canBuyET1?'':'disabled'}
+          style="padding:8px 14px;border:none;border-radius:6px;cursor:${canBuyET1?'pointer':'not-allowed'};
+          background:${canBuyET1?'linear-gradient(135deg,#ffdd44,#cc9900)':'rgba(80,80,80,0.5)'};
+          color:${canBuyET1?'#000':'#666'};font-weight:bold;font-size:12px;font-family:inherit;white-space:nowrap">
+          ${bankTotal<EXTRA_TIME_COST?'Missing pts':'Buy +20ss'}</button>
+      </div>`;
+    } else {
+      shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.25);border-radius:8px">
+        <div style="font-size:28px">⏱</div>
+        <div style="flex:1"><div style="color:#44ff88;font-weight:bold">Extra Time +20s (1st)</div>
+          <div style="color:#88aacc;font-size:11px">Purchased ✓ — Timer is now 2:20</div></div>
+      </div>`;
+    }
+
+    if(currentLevel>=8){
+      if(!extraTimeBought2){
+        shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(255,200,0,0.06);border:1px solid rgba(255,200,0,0.35);border-radius:8px">
+          <div style="font-size:28px">⏱</div>
+          <div style="flex:1"><div style="color:#ffdd44;font-weight:bold">Extra Time +20s (2nd)</div>
+            <div style="color:#88aacc;font-size:11px">Add another 20 seconds. Clock will show 2:40.</div>
+            <div style="color:#ffaa44;font-size:11px;margin-top:3px">Cost: ${EXTRA_TIME_COST.toLocaleString()} pts (one time)</div></div>
+          <button onclick="buyExtraTime2()" ${canBuyET2?'':'disabled'}
+            style="padding:8px 14px;border:none;border-radius:6px;cursor:${canBuyET2?'pointer':'not-allowed'};
+            background:${canBuyET2?'linear-gradient(135deg,#ffdd44,#cc9900)':'rgba(80,80,80,0.5)'};
+            color:${canBuyET2?'#000':'#666'};font-weight:bold;font-size:12px;font-family:inherit;white-space:nowrap">
+            ${bankTotal<EXTRA_TIME_COST?'Missing pts':'Buy +20ss'}</button>
+        </div>`;
+      } else {
+        shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.25);border-radius:8px">
+          <div style="font-size:28px">⏱</div>
+          <div style="flex:1"><div style="color:#44ff88;font-weight:bold">Extra Time +20s (2nd)</div>
+            <div style="color:#88aacc;font-size:11px">Purchased ✓ — Timer is now 2:40</div></div>
+        </div>`;
+      }
+    } else {
+      shopHTML+=`<div style="color:#556677;font-size:12px;padding:8px">🔒 2nd Extra Time — unlocks at Level Level 8</div>`;
+    }
+
+    if(currentLevel>=9){
+      if(!extraTimeBought3){
+        shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(255,200,0,0.06);border:1px solid rgba(255,200,0,0.35);border-radius:8px">
+          <div style="font-size:28px">⏱</div>
+          <div style="flex:1"><div style="color:#ffdd44;font-weight:bold">Extra Time +20s (3rd)</div>
+            <div style="color:#88aacc;font-size:11px">Add another 20 seconds. Clock will show 3:00.</div>
+            <div style="color:#ffaa44;font-size:11px;margin-top:3px">Cost: ${EXTRA_TIME_COST.toLocaleString()} pts (one time)</div></div>
+          <button onclick="buyExtraTime3()" ${canBuyET3?'':'disabled'}
+            style="padding:8px 14px;border:none;border-radius:6px;cursor:${canBuyET3?'pointer':'not-allowed'};
+            background:${canBuyET3?'linear-gradient(135deg,#ffdd44,#cc9900)':'rgba(80,80,80,0.5)'};
+            color:${canBuyET3?'#000':'#666'};font-weight:bold;font-size:12px;font-family:inherit;white-space:nowrap">
+            ${bankTotal<EXTRA_TIME_COST?'Missing pts':'Buy +20ss'}</button>
+        </div>`;
+      } else {
+        shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.25);border-radius:8px">
+          <div style="font-size:28px">⏱</div>
+          <div style="flex:1"><div style="color:#44ff88;font-weight:bold">Extra Time +20s (3rd)</div>
+            <div style="color:#88aacc;font-size:11px">Purchased ✓ — Timer is now 3:00</div></div>
+        </div>`;
+      }
+    } else {
+      shopHTML+=`<div style="color:#556677;font-size:12px;padding:8px">🔒 3rd Extra Time — unlocks at Level Level 9</div>`;
+    }
+
+    if(currentLevel>=10){
+      if(!extraTimeBought4){
+        shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(255,200,0,0.06);border:1px solid rgba(255,200,0,0.35);border-radius:8px">
+          <div style="font-size:28px">⏱</div>
+          <div style="flex:1"><div style="color:#ffdd44;font-weight:bold">Extra Time +20s (4th)</div>
+            <div style="color:#88aacc;font-size:11px">Add another 20 seconds. Clock will show 3:20.</div>
+            <div style="color:#ffaa44;font-size:11px;margin-top:3px">Cost: ${EXTRA_TIME_COST.toLocaleString()} pts (one time)</div></div>
+          <button onclick="buyExtraTime4()" ${canBuyET4?'':'disabled'}
+            style="padding:8px 14px;border:none;border-radius:6px;cursor:${canBuyET4?'pointer':'not-allowed'};
+            background:${canBuyET4?'linear-gradient(135deg,#ffdd44,#cc9900)':'rgba(80,80,80,0.5)'};
+            color:${canBuyET4?'#000':'#666'};font-weight:bold;font-size:12px;font-family:inherit;white-space:nowrap">
+            ${bankTotal<EXTRA_TIME_COST?'Missing pts':'Buy +20ss'}</button>
+        </div>`;
+      } else {
+        shopHTML+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px;background:rgba(0,255,100,0.08);border:1px solid rgba(0,255,100,0.25);border-radius:8px">
+          <div style="font-size:28px">⏱</div>
+          <div style="flex:1"><div style="color:#44ff88;font-weight:bold">Extra Time +20s (4th)</div>
+            <div style="color:#88aacc;font-size:11px">Purchased ✓ — Timer is now 3:20</div></div>
+        </div>`;
+      }
+    } else {
+      shopHTML+=`<div style="color:#556677;font-size:12px;padding:8px">🔒 4th Extra Time — unlocks at Level Level 10</div>`;
+    }
+
+    shopHTML+=`</div>`;
+  }
+  // ── Sound settings ──────
+
+      shopHTML+=`<div style="border-top:1px solid rgba(255,215,0,0.2);padding-top:14px;margin-bottom:14px">
+            <div style="font-size:10px;color:#667788;margin-top:6px">Tap a button to preview the sound</div>
+      </div>`;
+
+  // ── Cosmetics section added directly ──────
+  const colorKeys=['blue','green','purple','red'];
+  const colorNames={blue:'Blue',green:'Green',purple:'Purple',red:'Red'};
+  const colorSwatches={
+    hat:  {blue:'#1188cc',green:'#22aa44',purple:'#882299',red:'#cc2222',tiger:'#ff8800'},
+    shirt:{blue:'#1188cc',green:'#228844',purple:'#773399',red:'#cc3322'},
+    pants:{blue:'#1188cc',green:'#228844',purple:'#773399',red:'#cc3322'},
+    vest: {blue:'#1188cc',green:'#22aa44',purple:'#882299',red:'#cc2222'},
+  };
+
+  let cosHTML=`<div style="border-top:1px solid rgba(255,215,0,0.2);padding-top:16px;margin-bottom:16px">
+    <div style="color:#ff99cc;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">👷 Worker Cosmetics</div>`;
+
+  // ─ Hats (unlocks after level 1 = level >= 2 in bank) ─
+  if(currentLevel>=2){
+    cosHTML+=`<div style="margin-bottom:14px">
+      <div style="color:#ffdd88;font-size:12px;font-weight:bold;margin-bottom:8px">🪖 Hard Hat <span style="color:#aaa;font-size:10px;font-weight:normal">(unlocked after Level 1)</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">`;
+    for(const key of colorKeys){
+      const owned=boughtHats.has(key);
+      const equipped=equippedHat===key;
+      const canBuy=!owned&&bankTotal>=COSMETIC_COST;
+      const swatch=colorSwatches.hat[key];
+      cosHTML+=`<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${swatch};border:2px solid ${equipped?'#fff':'rgba(255,255,255,0.2)'}"></div>
+        <span style="font-size:9px;color:${owned?'#aaffaa':'#888'}">${colorNames[key]}</span>
+        ${equipped?`<span style="font-size:9px;color:#44ff88">✓ Equipped</span>`:
+          owned?`<button onclick="equipHat('${key}')" style="padding:3px 8px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(135deg,#44ff88,#11aa44);color:#000;font-size:9px;font-family:inherit;font-weight:bold">Wear</button>`:
+          `<button onclick="buyHat('${key}')" ${canBuy?'':'disabled'} style="padding:3px 8px;border:none;border-radius:4px;cursor:${canBuy?'pointer':'not-allowed'};background:${canBuy?'linear-gradient(135deg,#ffd700,#cc8800)':'rgba(80,80,80,0.5)'};color:${canBuy?'#000':'#555'};font-size:9px;font-family:inherit;font-weight:bold">10k</button>`}
+      </div>`;
+    }
+    cosHTML+=`</div></div>`;
+  } else {
+    cosHTML+=`<div style="padding:10px;background:rgba(80,80,80,0.15);border:1px solid rgba(80,80,80,0.3);border-radius:8px;margin-bottom:10px;color:#556677;font-size:12px">🔒 Hat colours — unlocks after Level Level 1</div>`;
+  }
+
+  // ─ Vest (unlocks after level 2 = level >= 3) ─
+  if(currentLevel>=3){
+    cosHTML+=`<div style="margin-bottom:14px">
+      <div style="color:#ffdd88;font-size:12px;font-weight:bold;margin-bottom:8px">🦺 Vest <span style="color:#aaa;font-size:10px;font-weight:normal">(unlocked after Level 2)</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">`;
+    for(const key of colorKeys){
+      const owned=boughtVests.has(key);
+      const equipped=equippedVest===key;
+      const canBuy=!owned&&bankTotal>=COSMETIC_COST;
+      const swatch=colorSwatches.vest[key];
+      cosHTML+=`<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${swatch};border:2px solid ${equipped?'#fff':'rgba(255,255,255,0.2)'}"></div>
+        <span style="font-size:9px;color:${owned?'#aaffaa':'#888'}">${colorNames[key]}</span>
+        ${equipped?`<span style="font-size:9px;color:#44ff88">✓ Equipped</span>`:
+          owned?`<button onclick="equipVest('${key}')" style="padding:3px 8px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(135deg,#44ff88,#11aa44);color:#000;font-size:9px;font-family:inherit;font-weight:bold">Wear</button>`:
+          `<button onclick="buyVest('${key}')" ${canBuy?'':'disabled'} style="padding:3px 8px;border:none;border-radius:4px;cursor:${canBuy?'pointer':'not-allowed'};background:${canBuy?'linear-gradient(135deg,#ffd700,#cc8800)':'rgba(80,80,80,0.5)'};color:${canBuy?'#000':'#555'};font-size:9px;font-family:inherit;font-weight:bold">10k</button>`}
+      </div>`;
+    }
+    cosHTML+=`</div></div>`;
+  } else {
+    cosHTML+=`<div style="padding:10px;background:rgba(80,80,80,0.15);border:1px solid rgba(80,80,80,0.3);border-radius:8px;margin-bottom:10px;color:#556677;font-size:12px">🔒 Vest colours — unlocks after Level Level 2</div>`;
+  }
+
+  // ─ Shirts (unlocks after level 3 = level >= 4) ─
+  if(currentLevel>=4){
+    cosHTML+=`<div style="margin-bottom:14px">
+      <div style="color:#ffdd88;font-size:12px;font-weight:bold;margin-bottom:8px">👕 Shirt <span style="color:#aaa;font-size:10px;font-weight:normal">(unlocked after Level 4)</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">`;
+    for(const key of colorKeys){
+      const owned=boughtShirts.has(key);
+      const equipped=equippedShirt===key;
+      const canBuy=!owned&&bankTotal>=COSMETIC_COST;
+      const swatch=colorSwatches.shirt[key];
+      cosHTML+=`<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${swatch};border:2px solid ${equipped?'#fff':'rgba(255,255,255,0.2)'}"></div>
+        <span style="font-size:9px;color:${owned?'#aaffaa':'#888'}">${colorNames[key]}</span>
+        ${equipped?`<span style="font-size:9px;color:#44ff88">✓ Equipped</span>`:
+          owned?`<button onclick="equipShirt('${key}')" style="padding:3px 8px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(135deg,#44ff88,#11aa44);color:#000;font-size:9px;font-family:inherit;font-weight:bold">Wear</button>`:
+          `<button onclick="buyShirt('${key}')" ${canBuy?'':'disabled'} style="padding:3px 8px;border:none;border-radius:4px;cursor:${canBuy?'pointer':'not-allowed'};background:${canBuy?'linear-gradient(135deg,#ffd700,#cc8800)':'rgba(80,80,80,0.5)'};color:${canBuy?'#000':'#555'};font-size:9px;font-family:inherit;font-weight:bold">10k</button>`}
+      </div>`;
+    }
+    cosHTML+=`</div></div>`;
+  } else {
+    cosHTML+=`<div style="padding:10px;background:rgba(80,80,80,0.15);border:1px solid rgba(80,80,80,0.3);border-radius:8px;margin-bottom:10px;color:#556677;font-size:12px">🔒 Shirt colours — unlocks after Level Level 3</div>`;
+  }
+
+  // ─ Pants (unlocks after level 4 = level >= 5) ─
+  if(currentLevel>=5){
+    cosHTML+=`<div style="margin-bottom:14px">
+      <div style="color:#ffdd88;font-size:12px;font-weight:bold;margin-bottom:8px">👖 Pants <span style="color:#aaa;font-size:10px;font-weight:normal">(unlocked after Level 4)</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">`;
+    for(const key of colorKeys){
+      const owned=boughtPants.has(key);
+      const equipped=equippedPants===key;
+      const canBuy=!owned&&bankTotal>=COSMETIC_COST;
+      const swatch=colorSwatches.pants[key];
+      cosHTML+=`<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${swatch};border:2px solid ${equipped?'#fff':'rgba(255,255,255,0.2)'}"></div>
+        <span style="font-size:9px;color:${owned?'#aaffaa':'#888'}">${colorNames[key]}</span>
+        ${equipped?`<span style="font-size:9px;color:#44ff88">✓ Equipped</span>`:
+          owned?`<button onclick="equipPants('${key}')" style="padding:3px 8px;border:none;border-radius:4px;cursor:pointer;background:linear-gradient(135deg,#44ff88,#11aa44);color:#000;font-size:9px;font-family:inherit;font-weight:bold">Wear</button>`:
+          `<button onclick="buyPants('${key}')" ${canBuy?'':'disabled'} style="padding:3px 8px;border:none;border-radius:4px;cursor:${canBuy?'pointer':'not-allowed'};background:${canBuy?'linear-gradient(135deg,#ffd700,#cc8800)':'rgba(80,80,80,0.5)'};color:${canBuy?'#000':'#555'};font-size:9px;font-family:inherit;font-weight:bold">10k</button>`}
+      </div>`;
+    }
+    cosHTML+=`</div></div>`;
+  } else {
+    cosHTML+=`<div style="padding:10px;background:rgba(80,80,80,0.15);border:1px solid rgba(80,80,80,0.3);border-radius:8px;margin-bottom:10px;color:#556677;font-size:12px">🔒 Pants colours — unlocks after Level Level 4</div>`;
+  }
+
+
+  const allColorsOwned = ['blue','green','purple','red'].every(k =>
+    boughtHats.has(k) && boughtShirts.has(k) && boughtVests.has(k) && boughtPants.has(k)
+  );
+  if (allColorsOwned) {
+    const tigerEquipped = equippedHat==='tiger'&&equippedShirt==='tiger'&&equippedVest==='tiger'&&equippedPants==='tiger';
+    cosHTML += `<div style="border-top:1px solid rgba(255,140,0,0.4);margin-top:16px;padding-top:14px;">
+      <div style="color:#ff8800;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">🐯 Tiger Uniform</div>
+      ${tigerUniformBought
+        ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(255,140,0,0.08);border:1px solid rgba(255,140,0,0.4);border-radius:8px;cursor:pointer" onclick="equipTigerUniform()">
+            <div style="width:28px;height:28px;background:linear-gradient(135deg,#ff8800,#111);border-radius:4px;border:2px solid #ff8800;flex-shrink:0"></div>
+            <div style="flex:1"><div style="color:#ff8800;font-weight:bold;font-size:12px">Tiger Uniform 🐯</div>
+            <div style="color:#aaa;font-size:10px">Hat + Shirt + Vest + Pants</div></div>
+            <div style="font-size:11px;color:${tigerEquipped?'#44ff88':'#aaa'}">${tigerEquipped?'✓ On':'Wear'}</div>
+          </div>`
+        : `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(255,140,0,0.06);border:1px solid rgba(255,140,0,0.35);border-radius:8px">
+            <div style="width:28px;height:28px;background:linear-gradient(135deg,#ff8800,#111);border-radius:4px;border:2px solid rgba(255,140,0,0.5);flex-shrink:0"></div>
+            <div style="flex:1"><div style="color:#ff8800;font-weight:bold;font-size:12px">Tiger Uniform 🐯</div>
+            <div style="color:#aaa;font-size:10px">Cost: ${TIGER_COST.toLocaleString()} pts — Full outfit</div></div>
+            <button onclick="buyTigerUniform()" ${bankTotal>=TIGER_COST?'':'disabled'}
+              style="padding:7px 12px;border:none;border-radius:6px;cursor:${bankTotal>=TIGER_COST?'pointer':'not-allowed'};
+              font-size:11px;font-family:inherit;font-weight:bold;white-space:nowrap;
+              background:${bankTotal>=TIGER_COST?'linear-gradient(135deg,#ff8800,#cc4400)':'rgba(80,80,80,0.5)'};
+              color:${bankTotal>=TIGER_COST?'#fff':'#666'}">
+              ${bankTotal>=TIGER_COST?'Buy 🐯':'Missing pts'}
+            </button>
+          </div>`
+      }
+    </div>`;
+  }
+
+  cosHTML+=`</div>`;
+
+  // Insert cosmetics before the close button
+  shopHTML += cosHTML;
+  shopHTML += `<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn" onclick="closeBank()">↩ Back to Game</button>
+    </div></div>`;
+
+  const _savedScroll = (document.getElementById('shopBox')||{scrollTop:0}).scrollTop;
+  ov.innerHTML=shopHTML;
+  ov.style.display='flex';
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ const sb=document.getElementById('shopBox'); if(sb) sb.scrollTop=_savedScroll; }); });
+}
+
 function checkSecretBonus(){
   // Requires: all 4 green items bought AND played at least one level in full green
   const hasGreenHat  = boughtHats.has('green');
@@ -2665,7 +3048,7 @@ function fullRestart(){
   // Go back to splash/name screen
   const ov=document.getElementById('overlay');
   ov.innerHTML=`
-    <div style="text-align:center;margin-bottom:10px;direction:rtl;">
+    <div style="text-align:center;margin-bottom:10px;">
       <div style="font-size:22px;font-weight:bold;color:#44ddff;font-family:Arial,sans-serif;line-height:1.5;text-shadow:0 0 14px rgba(68,220,255,0.5)">
         📱 Solar Clean — Mobile Edition
       </div>
@@ -2675,7 +3058,7 @@ function fullRestart(){
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
       <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.7.3</div>
     </div>
-      <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
+      
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
       <label style="font-size:13px;color:#88aacc;letter-spacing:2px;text-transform:uppercase">Enter your name</label>
       <input id="playerName" type="text" maxlength="16" placeholder="Your name…"
