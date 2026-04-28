@@ -377,7 +377,7 @@ self.addEventListener('fetch',e=>{e.respondWith(caches.open(CACHE).then(c=>c.mat
       Lead Developer — Yaniv Waldman
     </div>
     <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.7.3</div>
+    <div style="font-size:11px;color:#445566;margin-top:6px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.7.4</div>
   </div>
 
   <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -684,6 +684,7 @@ function buildBoardHTML(scores, myScore, isGlobal) {
 }
 
 function initGame(){
+  _voiceWaterPlayed=false; _voiceSaltPlayed=false;
   buildPanels();
   player={gx:0,gy:6,gz:0,face:0,walkPh:0,sweepPh:0,sweeping:false};
   waterLevel=1;saltLevel=1;particles=[];popups=[];score=0;bankTotal=0;
@@ -1139,6 +1140,29 @@ function sfxClean() {
 
 
 // Water splash when refilling
+
+// ── Voice alerts ──────────────────────────────────────────────
+function speakRefill(text){
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const voices_say = (txt, times, idx) => {
+    if(idx >= times) return;
+    const u = new SpeechSynthesisUtterance(txt);
+    u.lang = 'en-US';
+    u.rate = 1.05;
+    u.pitch = 0.75;
+    u.volume = 1.0;
+    // Pick a male voice if available
+    const vs = window.speechSynthesis.getVoices();
+    const male = vs.find(v => v.lang.startsWith('en') && 
+      /male|david|mark|james|daniel|aaron|fred|bruce/i.test(v.name));
+    if(male) u.voice = male;
+    u.onend = () => voices_say(txt, times, idx+1);
+    window.speechSynthesis.speak(u);
+  };
+  voices_say(text, 3, 0);
+}
+
 function sfxWater() {
   const ac = getSfxCtx(); if (!ac) return;
   const t = ac.currentTime;
@@ -1785,6 +1809,8 @@ function tryClean(){
 
 // ── Level up ──────────────────────────────────────────────────
 let levelingUp=false;
+let _voiceWaterPlayed=false; // track if water empty voice was played
+let _voiceSaltPlayed=false;  // track if salt empty voice was played
 function checkLevelUp(){
   const target=levelTarget(currentLevel);
   if(score>=target&&!levelingUp){
@@ -2587,6 +2613,8 @@ function buyExtraTank(){
 }
 
 function startLevel(){
+  _voiceWaterPlayed=false; _voiceSaltPlayed=false;
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
   // Check if player is wearing full green uniform
   if(equippedHat==='green'&&equippedVest==='green'&&equippedShirt==='green'&&equippedPants==='green'){
     _playedFullGreen=true;
@@ -3056,7 +3084,7 @@ function fullRestart(){
         Lead Developer — Yaniv Waldman
       </div>
       <div style="font-size:11px;color:#556677;margin-top:5px;font-family:Arial,sans-serif;letter-spacing:0.5px;">© 2026 ninja-niv. All rights reserved.</div>
-      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.7.3</div>
+      <div style="font-size:11px;color:#445566;margin-top:4px;font-family:Arial,sans-serif;letter-spacing:1px;">Version 4.7.4</div>
     </div>
       
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:8px 0 18px">
@@ -4609,9 +4637,14 @@ function loop(now){
   // ── Warnings ────────────────────────────────────────────────
   const noWater=waterLevel<=0, noSalt=saltLevel<=0&&autoSystemBought&&sprinklers.length>0;
   document.getElementById('refill').style.display=(noWater||noSalt)?'block':'none';
-  if(noWater&&noSalt) document.getElementById('refill').textContent='⚠ אין מים! אין מלח! מלא את שני המיכלים!';
-  else if(noWater) document.getElementById('refill').textContent='⚠ אין מים! לך למיכל 💧!';
-  else if(noSalt)  document.getElementById('refill').textContent='⚠ אין מלח! לך למיכל המלח 🧂!';
+  if(noWater&&noSalt) document.getElementById('refill').textContent='⚠ No water! No salt! Refill both tanks!';
+  else if(noWater)    document.getElementById('refill').textContent='⚠ No water! Go to the tank 💧!';
+  else if(noSalt)     document.getElementById('refill').textContent='⚠ No salt! Go to the salt tank 🧂!';
+  // Voice alerts — shout once when tank first runs empty
+  if(noWater && !_voiceWaterPlayed){ _voiceWaterPlayed=true; speakRefill('Refill water'); }
+  if(!noWater) _voiceWaterPlayed=false;
+  if(noSalt  && !_voiceSaltPlayed) { _voiceSaltPlayed=true;  speakRefill('Refill salt');  }
+  if(!noSalt)  _voiceSaltPlayed=false;
 
   // ── Speech bubble timer ────────────────────────────────────
   if(speechBubble.active){
