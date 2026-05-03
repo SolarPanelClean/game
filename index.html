@@ -17,8 +17,8 @@
 <meta property="og:title" content="Solar Clean - Solar Panel Cleaning Game">
 <meta property="og:description" content="Clean solar panels, earn points and level up! A fun free mobile game for all ages. Can you reach Level 10 and become the Master of Cleaning?">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://solarpanelclean.github.io/game/">
-<meta property="og:image" content="https://solarpanelclean.github.io/game/icon_logo.png">
+<meta property="og:url" content="https://scg.ninja-niv.com/">
+<meta property="og:image" content="https://scg.ninja-niv.com/icon_logo.png">
 <title>Solar Clean 🌞 Mobile</title>
 
 <!-- PWA Manifest (inline via blob, works from any origin including file://) -->
@@ -190,14 +190,14 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 <meta property="og:title" content="Solar Clean - Solar Panel Cleaning Game">
 <meta property="og:description" content="Clean solar panels, earn points and level up! A fun free mobile game for all ages. Can you reach Level 10 and become the Master of Cleaning?">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://solarpanelclean.github.io/game/">
-<meta property="og:image" content="https://solarpanelclean.github.io/game/icon_logo.png">
+<meta property="og:url" content="https://scg.ninja-niv.com/">
+<meta property="og:image" content="https://scg.ninja-niv.com/icon_logo.png">
 
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     const swCode = `
-const CACHE='solar-sweep-v4';
+const CACHE='scg-solar-v475';
 self.addEventListener('install',e=>{self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))))});
 self.addEventListener('fetch',e=>{e.respondWith(caches.open(CACHE).then(c=>c.match(e.request).then(r=>r||(fetch(e.request).then(res=>{if(res.ok)c.put(e.request,res.clone());return res;}).catch(()=>r)))));});
@@ -720,9 +720,12 @@ function initGame(){
 }
 
 function startGame(){
-  // Unlock AudioContext on first interaction (iOS requirement)
+  // Unlock AudioContext + SpeechSynthesis on first interaction (iOS requirement)
   if(!sfxCtx){try{sfxCtx=new(window.AudioContext||window.webkitAudioContext)();sfxCtxUnlocked=true;}catch(e){}}
   if(sfxCtx&&sfxCtx.state==='suspended')sfxCtx.resume();
+  _unlockSpeech();
+  // Play any pending refill speech that was queued before unlock
+  if(_pendingRefill){ const _pr=_pendingRefill; _pendingRefill=null; setTimeout(()=>speakRefill(_pr),100); }
   const input = document.getElementById('playerName');
   playerName = (input && input.value.trim()) ? input.value.trim() : 'Anonymous';
   try { localStorage.setItem('solarCleanPlayerName', playerName); } catch(e) {}
@@ -1176,6 +1179,9 @@ function sfxWater() {
 // ── Voice alerts (Web Speech API) ─────────────────────────────
 let _voiceWaterPlayed = false;
 let _voiceSaltPlayed  = false;
+let _lastWarnState    = -1; // cache warning state to avoid DOM thrashing
+let _speechUnlocked   = false;
+let _pendingRefill    = null;
 function speakRefill(type){
   if(!window.speechSynthesis) return;
   const text = (type==='water') ? 'Refill water' : 'Refill salt';
@@ -1189,6 +1195,14 @@ function speakRefill(type){
     window.speechSynthesis.speak(u);
   }
   sayOne();
+}
+
+function _unlockSpeech(){
+  if(_speechUnlocked || !window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance('');
+  u.volume = 0; u.lang = 'en-US';
+  window.speechSynthesis.speak(u);
+  _speechUnlocked = true;
 }
 
 
@@ -2628,8 +2642,9 @@ function buyExtraTank(){
 }
 
 function startLevel(){
-  _voiceWaterPlayed=false; _voiceSaltPlayed=false;
+  _voiceWaterPlayed=false; _voiceSaltPlayed=false; _lastWarnState=-1;
   if(window.speechSynthesis) window.speechSynthesis.cancel();
+  _speechUnlocked=false; _pendingRefill=null;
   // Check if player is wearing full green uniform
   if(equippedHat==='green'&&equippedVest==='green'&&equippedShirt==='green'&&equippedPants==='green'){
     _playedFullGreen=true;
@@ -4630,25 +4645,34 @@ function loop(now){
   // ── Water refill (blue tank gx=-14,gy=13) — placed far from panels ──
   const tx=-14+.5,ty=13+.5;
   const tdist=Math.hypot(player.gx-tx,player.gy-ty);
-  if(tdist<2.5&&waterLevel<1){if(waterLevel===0||waterLevel<0.02) sfxWater();waterLevel=Math.min(1,waterLevel+dt*.65);updateHUD();}
+  if(tdist<2.5&&waterLevel<1){if(waterLevel===0||waterLevel<0.02) sfxWater();const _wPrev=waterLevel;waterLevel=Math.min(1,waterLevel+dt*.65);if(Math.round(_wPrev*20)!==Math.round(waterLevel*20)) updateHUD();}
   // ── Extra water tank refill (gx=9,gy=-10) ───────────────────
   const etx=9+.5,ety=-10+.5;
   const etdist=extraTankBought?Math.hypot(player.gx-etx,player.gy-ety):Infinity;
-  if(etdist<2.5&&waterLevel<1){waterLevel=Math.min(1,waterLevel+dt*.65);updateHUD();}
+  if(etdist<2.5&&waterLevel<1){const _wPrev2=waterLevel;waterLevel=Math.min(1,waterLevel+dt*.65);if(Math.round(_wPrev2*20)!==Math.round(waterLevel*20)) updateHUD();}
   // ── Salt refill (salt tank gx=-11.5,gy=13) ────────────────────
   const stx=-11.5+.5,sty=13+.5;
   const stdist=Math.hypot(player.gx-stx,player.gy-sty);
-  if(stdist<2.5&&saltLevel<1){saltLevel=Math.min(1,saltLevel+dt*.55);updateHUD();}
+  if(stdist<2.5&&saltLevel<1){const _sPrev=saltLevel;saltLevel=Math.min(1,saltLevel+dt*.55);if(Math.round(_sPrev*20)!==Math.round(saltLevel*20)) updateHUD();}
   // ── Warnings ────────────────────────────────────────────────
   const noWater=waterLevel<=0, noSalt=saltLevel<=0&&autoSystemBought&&sprinklers.length>0;
-  document.getElementById('refill').style.display=(noWater||noSalt)?'block':'none';
-  if(noWater&&noSalt) document.getElementById('refill').textContent='⚠ No water! No salt! Refill both tanks!';
-  else if(noWater)    document.getElementById('refill').textContent='⚠ No water! Go to the tank 💧!';
-  else if(noSalt)     document.getElementById('refill').textContent='⚠ No salt! Go to the salt tank 🧂!';
+  // Only update DOM when state changes (avoids 60fps DOM thrashing)
+  const _warnState = (noWater?1:0)|(noSalt?2:0);
+  if(_warnState !== _lastWarnState){
+    _lastWarnState = _warnState;
+    const _rf = document.getElementById('refill');
+    if(_rf){
+      _rf.style.display = _warnState ? 'block' : 'none';
+      if(noWater&&noSalt)  _rf.textContent='⚠ No water! No salt! Refill both tanks!';
+      else if(noWater)     _rf.textContent='⚠ No water! Go to the tank 💧!';
+      else if(noSalt)      _rf.textContent='⚠ No salt! Go to the salt tank 🧂!';
+    }
+  }
   // Voice alerts — shout once when tank first runs empty
-  if(noWater && !_voiceWaterPlayed){ _voiceWaterPlayed=true; speakRefill('water'); }
+  // Use setTimeout to defer off main thread and avoid frame lag
+  if(noWater && !_voiceWaterPlayed){ _voiceWaterPlayed=true; setTimeout(()=>speakRefill('water'),0); }
   if(!noWater) _voiceWaterPlayed=false;
-  if(noSalt  && !_voiceSaltPlayed) { _voiceSaltPlayed=true;  speakRefill('salt');  }
+  if(noSalt   && !_voiceSaltPlayed){ _voiceSaltPlayed=true;  setTimeout(()=>speakRefill('salt'),0); }
   if(!noSalt)  _voiceSaltPlayed=false;
 
   // ── Speech bubble timer ────────────────────────────────────
@@ -4797,7 +4821,7 @@ function loop(now){
     <p>Solar Clean was developed by Yaniv Waldman as a fun educational mobile game. It promotes awareness of renewable energy maintenance and the importance of keeping solar panels clean for optimal energy production efficiency.</p>
     <h2>Privacy Policy</h2>
     <p>Solar Clean may display advertisements via Google AdSense. We use localStorage to save your game progress, player name, and high scores on your device only. We do not collect, store, or share personal information on our servers. By playing you agree to <a href="https://policies.google.com/privacy">Google's Privacy Policy</a> and <a href="https://policies.google.com/terms">Terms of Service</a>.</p>
-    <p>For questions contact us through <a href="https://solarpanelclean.github.io">solarpanelclean.github.io</a></p>
+    <p>For questions contact us through <a href="https://scg.ninja-niv.com">scg.ninja-niv.com</a></p>
   </article>
 </div>
 
