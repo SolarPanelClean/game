@@ -1,8 +1,8 @@
 [{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.ninja_niv.scg.twa",
-        "sha256_cert_fingerprints": ["C6:8A:53:F8:9B:69:32:D8:90:63:DF:7D:00:80:DE:51:06:D6:63:29:63:9A:5A:4E:69:9E:AB:36:33:E7:E4:69"]
-      }
-    }]
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.ninja_niv.scg.twa",
+    "sha256_cert_fingerprints": ["C3:63:BE:2A:0D:7D:B7:2D:DD:E2:BF:FC:D0:1C:6A:F8:9B:03:C5:CD:23:22:6A:3D:CE:D3:BF:B1:16:4A:4D:18"]
+  }
+}]
